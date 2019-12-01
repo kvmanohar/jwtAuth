@@ -86,7 +86,7 @@ server.post('/login', async (req, res) => {
 
 //3.Logout a user
 server.post('/logout', (_req, res) => {
-	res.clearCookie('refreshtoken');
+	res.clearCookie('refreshtoken', { path: '/refresh_token' });
 	return res.send({ message: 'Logged out' });
 });
 
