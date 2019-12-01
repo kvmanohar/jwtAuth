@@ -104,6 +104,41 @@ server.post('/protected', async (req, res) => {
 	}
 });
 
+// 5. Get a new access token with a refresh token
+server.post('/refresh_token', (req, res) => {
+	const token = req.cookies.refreshtoken;
+
+	// If we don't have a token in our request
+	if (!token) return res.send({ accesstoken: 'No token in the request' });
+
+	// We have a token, let's verify it!
+	let payload = null;
+	try {
+		payload = verify(token, process.env.REFRESH_TOKEN_SECRET);
+	} catch (err) {
+		return res.send({ accesstoken: 'token verify error' });
+	}
+
+	// token is valid, check if user exist
+	const user = fakeDB.find((user) => user.id === payload.userId);
+	if (!user) return res.send({ accesstoken: 'User not found' });
+
+	// user exist, check if refreshtoken exist on user
+	if (user.refreshToken !== token) return res.send({ accesstoken: 'Refersh token does not exists' });
+
+	// token exist, create new Refresh- and accesstoken
+	const accesstoken = createAccessToken(user.id);
+	const refreshtoken = createRefreshToken(user.id);
+
+	// update refreshtoken on user in db
+	// Could have different versions instead!
+	user.refreshtoken = refreshtoken;
+
+	// All good to go, send new refreshtoken and accesstoken
+	sendRefreshToken(res, refreshtoken);
+	return res.send({ accesstoken });
+});
+
 server.listen(process.env.PORT, () => {
 	console.log(`Server listening on port ${process.env.PORT}`);
 });
